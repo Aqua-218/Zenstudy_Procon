@@ -14,8 +14,9 @@ const LIGHT_NEAR = 24, LIGHT_FAR = 34;   // この距離で光を滑らかに消
 const BLOSSOM_ATTRIBS = [['aP', 3, 0], ['aN', 3, 12], ['aUv', 2, 24], ['aSz', 1, 32], ['aR', 1, 36], ['aK', 1, 40]];
 
 export class Renderer {
-  constructor(canvas, scene, { dpr = 1, hinge = [0, 0], drip = [0, 0, 0] } = {}) {
+  constructor(canvas, scene, { dpr = 1, hinge = [0, 0], drip = [0, 0, 0], quality = {} } = {}) {
     this.drip = drip;
+    this.q = Object.assign({ ssao: true, wideBloom: true, shadow: 4096, refl: 768 }, quality);
     this.canvas = canvas;
     this.dpr = dpr;
     this.hinge = hinge;
@@ -50,9 +51,9 @@ export class Renderer {
 
     // 影: 月の方向から境内全体を平行投影
     this.noiseTex = this.texture2D(scene.noise || noiseTexture(), NOISE_SIZE);
-    this.shadowSize = Math.min(innerWidth, innerHeight) < 800 ? 2048 : 4096;   // 扉が動いたときだけ描くので大きく取れる
+    this.shadowSize = this.q.shadow;   // 扉が動いたときだけ描くので大きく取れる
     this.shadowFbo = this.fbo(this.shadowSize, this.shadowSize, true);
-    this.reflFbo = this.fbo(768, 768, true);      // 御鏡の反射
+    this.reflFbo = this.fbo(this.q.refl, this.q.refl, true);   // 御鏡の反射
     const center = [0, 3, 14];
     const lightView = M.lookAt(v3.add(center, v3.scale(MOON, 70)), center, [0, 1, 0]);
     this.lightVP = M.mul(M.ortho(-40, 40, -40, 40, 10, 150), lightView);
@@ -142,13 +143,17 @@ export class Renderer {
   }
 
   // 重いときは内部解像度を下げ、余裕が戻れば上げる
-  adapt(frameMs) {
+  // targetMs: 目指している描画間隔。フレームを間引いているときは、その間隔を基準に判断しないと
+  // 「重い」と誤認して解像度を下げ続けてしまう
+  adapt(targetMs = 16.7) {
+    const t = performance.now();
+    const frameMs = this.lastAdaptAt ? Math.min(t - this.lastAdaptAt, 200) : targetMs;
+    this.lastAdaptAt = t;
     this.avgMs = this.avgMs === undefined ? frameMs : this.avgMs * 0.9 + frameMs * 0.1;
-    const now = performance.now();
-    if (now - (this.lastAdapt || 0) < 1500) return;
-    if (this.avgMs > 19 && this.scale > 0.5) { this.scale = Math.max(0.5, this.scale - 0.15); this.lastAdapt = now; this.resize(); }
-    else if (this.avgMs < 13 && this.scale < 1) { this.scale = Math.min(1, this.scale + 0.1); this.lastAdapt = now; this.resize(); }
-    this.ssao = this.scale >= 0.7;   // 解像度を落とすほど重いときは SSAO も止める
+    if (t - (this.lastAdapt || 0) < 1500) return;
+    if (this.avgMs > targetMs + 6 && this.scale > 0.5) { this.scale = Math.max(0.5, this.scale - 0.15); this.lastAdapt = t; this.resize(); }
+    else if (this.avgMs < targetMs + 1.5 && this.scale < 1) { this.scale = Math.min(1, this.scale + 0.1); this.lastAdapt = t; this.resize(); }
+    this.ssao = this.q.ssao && this.scale >= 0.7;   // 解像度を落とすほど重いときは SSAO も止める
   }
 
   resize() {
@@ -354,7 +359,7 @@ export class Renderer {
     }
 
     // 3. SSAO (半解像度)
-    if (this.ssao !== false) {
+    if (this.q.ssao && this.ssao !== false) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.ndFbo.fb);
       gl.viewport(0, 0, this.ndFbo.w, this.ndFbo.h);
       gl.clearColor(0.5, 0.5, 1, 1);
@@ -384,19 +389,21 @@ export class Renderer {
       this.bindTex(0, this.bloomB.tex, q.u.uTex); gl.uniform2f(q.u.uDir, 0, 1.6 / this.bloomA.h);
     });
     // 2 段目。狭い光芒と広い暈の 2 層にする
-    this.drawQuad(this.p.blur, this.bloomB, q => {
-      this.bindTex(0, this.bloomA.tex, q.u.uTex); gl.uniform2f(q.u.uDir, 5.5 / this.bloomA.w, 0);
-    });
-    this.drawQuad(this.p.blur, this.bloomC, q => {
-      this.bindTex(0, this.bloomB.tex, q.u.uTex); gl.uniform2f(q.u.uDir, 0, 5.5 / this.bloomA.h);
-    });
+    if (this.q.wideBloom) {
+      this.drawQuad(this.p.blur, this.bloomB, q => {
+        this.bindTex(0, this.bloomA.tex, q.u.uTex); gl.uniform2f(q.u.uDir, 5.5 / this.bloomA.w, 0);
+      });
+      this.drawQuad(this.p.blur, this.bloomC, q => {
+        this.bindTex(0, this.bloomB.tex, q.u.uTex); gl.uniform2f(q.u.uDir, 0, 5.5 / this.bloomA.h);
+      });
+    }
 
     // 5. 合成
     this.drawQuad(this.p.composite, null, q => {
       this.bindTex(0, this.sceneFbo.tex, q.u.uScene);
       this.bindTex(1, this.bloomA.tex, q.u.uBloom);
       this.bindTex(2, this.aoA.tex, q.u.uAO);
-      this.bindTex(3, this.bloomC.tex, q.u.uBloomW);
+      this.bindTex(3, this.q.wideBloom ? this.bloomC.tex : this.bloomA.tex, q.u.uBloomW);
       gl.uniform2f(q.u.uPx, 1 / c.width, 1 / c.height);
       gl.uniform1f(q.u.uT, t);
     });

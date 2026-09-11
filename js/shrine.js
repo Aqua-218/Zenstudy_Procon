@@ -56,7 +56,7 @@ export const LAYOUT = {
 // 高欄の線上に立つ柱。ここには束柱を立てない
 const railPillars = [];
 
-export function buildScene(seed = 7) {
+export function buildScene(seed = 7, density = 1) {
   railPillars.length = 0;
   const rnd = makeRng(seed);
   const b = new MeshBuilder();
@@ -77,7 +77,7 @@ export function buildScene(seed = 7) {
   railings(b);
   footprints(b);
   shinboku(b, blockers);
-  sakura(b, rnd, blossoms, blockers);
+  sakura(b, rnd, blossoms, blockers, density);
   cedars(b, rnd);
   for (let i = 0; i < 320; i++) pushBlossom(petals, [-9 + rnd() * 18, rnd() * 9, -6 + rnd() * 50], [0, 1, 0], 0.05 + rnd() * 0.03, rnd(), 1);
   // 一本の桜のまわりだけ、花びらが上へ昇る (k を負にすると頂点シェーダーが向きを反転する)
@@ -1042,7 +1042,7 @@ function shinboku(b, blockers) {
 }
 
 // ---------- 桜 ----------
-function sakura(b, rnd, blossoms, blockers) {
+function sakura(b, rnd, blossoms, blockers, density = 1) {
   const C = COLORS;
   const spots = [];
   for (const s of [-1, 1]) for (const z of [14, 21, 28]) spots.push([s * (7.0 + rnd() * 0.8), z + rnd() * 2]);
@@ -1059,8 +1059,8 @@ function sakura(b, rnd, blossoms, blockers) {
       pushBlossom(blossoms, [p[0] + rr * dx, p[1] + rr * dy, p[2] + rr * dz], [nx / l, ny / l, nz / l], size, rnd(), k);
     };
     // 房の板は 1 枚で 16 輪ぶん描けるので、板の数は抑えて房の比率を上げる (頂点数と塗る面積の両方が減る)
-    for (let i = 0; i < n * 0.5; i++) place(0.42 + rnd() * 0.22, Math.pow(rnd(), 0.6) * 0.95);  // 房
-    for (let i = 0; i < n * 0.35; i++) place(0.10 + rnd() * 0.08, Math.pow(rnd(), 0.4));        // 表面の 1 輪ずつ
+    for (let i = 0; i < n * 0.5 * density; i++) place(0.42 + rnd() * 0.22, Math.pow(rnd(), 0.6) * 0.95);  // 房
+    for (let i = 0; i < n * 0.35 * density; i++) place(0.10 + rnd() * 0.08, Math.pow(rnd(), 0.4));        // 表面の 1 輪ずつ
   };
   // 4 段に分岐
   const branch = (m, len, r0, depth) => {

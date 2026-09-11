@@ -17,6 +17,13 @@ const ui = {
 };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touch = matchMedia('(pointer: coarse)').matches;
+
+// 端末に応じた品質。スマホは作る量から減らし、重いパスを省き、フレームも抑える。
+// 発熱はフレームを抑えるのが一番効く
+const mobile = touch || Math.min(innerWidth, innerHeight) < 760;
+const QUALITY = mobile
+  ? { density: 0.45, ssao: false, wideBloom: false, shadow: 1024, refl: 384, fps: 40, idleFps: 24, dpr: 1.1 }
+  : { density: 1, ssao: true, wideBloom: true, shadow: 4096, refl: 768, fps: 0, idleFps: 30, dpr: 1.5 };
 // ?debug で巻物を読まなくても本殿が開く (動作確認用)
 const debug = new URLSearchParams(location.search).has('debug');
 
@@ -26,7 +33,8 @@ function ready(sc) {
   scene = sc;
   try {
     renderer = new Renderer(canvas, scene, {
-      dpr: Math.min(devicePixelRatio || 1, touch ? 1.25 : 1.5),
+      dpr: Math.min(devicePixelRatio || 1, QUALITY.dpr),
+      quality: QUALITY,
       hinge: [LAYOUT.honden.hingeX, LAYOUT.honden.doorZ],
       drip: [LAYOUT.chozuya.x, 1.12, LAYOUT.chozuya.z - 0.05],
     });
@@ -41,13 +49,13 @@ function ready(sc) {
 ui.startBtn.disabled = true;
 {
   let done = false;
-  const inline = why => { if (done) return; done = true; if (why) console.warn('build-worker:', why); ready(buildScene(7)); };   // noise は Renderer 側で作られる
+  const inline = why => { if (done) return; done = true; if (why) console.warn('build-worker:', why); ready(buildScene(7, QUALITY.density)); };   // noise は Renderer 側で作られる
   try {
     const w = new Worker(new URL('./build-worker.js', import.meta.url), { type: 'module' });
     w.onmessage = e => { if (!done) { done = true; ready(e.data); } w.terminate(); };
     w.onerror = e => { w.terminate(); inline(e.message || 'error'); };
     w.onmessageerror = () => { w.terminate(); inline('messageerror'); };
-    w.postMessage({ seed: 7 });
+    w.postMessage({ seed: 7, density: QUALITY.density });
     setTimeout(() => { if (!done) { w.terminate(); inline('timeout'); } }, 6000);
   } catch (e) {
     inline(e);
@@ -283,6 +291,11 @@ let stepPhase = 0;
 
 // ---------- ループ ----------
 let last = performance.now(), walk = 0, eyeY = 1.62, frameNo = 0;
+// 描画の間隔。何も起きていないときは落として端末を休ませる。
+// 状態の更新は毎フレーム走るので、操作の反応は鈍らない
+let lastDraw = 0, idleSince = performance.now();
+const touched = () => { idleSince = performance.now(); };
+for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel']) addEventListener(ev, touched, { passive: true });
 function frame(now) {
   const dtReal = (now - last) / 1000, dt = Math.min(0.05, dtReal); last = now;
   const t = now / 1000;
@@ -304,9 +317,18 @@ function frame(now) {
   const bob = reduce ? 0 : Math.sin(walk) * 0.035 * moving;
   eyeY += (floorY(player.x, player.z) + 1.62 - eyeY) * (1 - Math.exp(-dtReal * 12));
   const eye = [player.x, eyeY + bob, player.z];
-  // 巻物を読んでいる間は背景なので 30fps に落とす
-  if (!reading() || (frameNo++ & 1) === 0) renderer.render({ eye, yaw: player.yaw, pitch: player.pitch, t, swing, open, hush, omen: omens && omens.uniforms(), petals: !reduce });
-  renderer.adapt(dtReal * 1000);   // GPU 待ちも含めた実フレーム間隔で判断する
+  if (moving > 0.01) idleSince = now;
+  // 目標の間隔を決める。読んでいる間は背景、動きが無いときも落とす
+  const idle = now - idleSince > 2500;
+  const fps = reading() ? 20 : idle ? QUALITY.idleFps : QUALITY.fps;
+  const minMs = fps ? 1000 / fps - 1.5 : 0;
+  if (now - lastDraw >= minMs) {
+    lastDraw = now;
+    renderer.render({ eye, yaw: player.yaw, pitch: player.pitch, t, swing, open, hush, omen: omens && omens.uniforms(), petals: !reduce });
+    // 休ませている間の間隔で解像度を判断しない
+    if (!idle && !reading()) renderer.adapt(QUALITY.fps ? 1000 / QUALITY.fps : 16.7);
+    else renderer.lastAdaptAt = 0;
+  }
 
   if (started && !reading()) {
     const s = nearestSpot();

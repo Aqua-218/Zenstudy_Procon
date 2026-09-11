@@ -3,7 +3,7 @@ import { buildScene } from './shrine.js';
 import { noiseTexture } from './noise.js';
 
 onmessage = e => {
-  const scene = buildScene(e.data.seed);
+  const scene = buildScene(e.data.seed, e.data.density);
   scene.noise = noiseTexture();
   postMessage(scene, [scene.vertices.buffer, scene.blossoms.buffer, scene.petals.buffer, scene.noise.buffer]);
 };
