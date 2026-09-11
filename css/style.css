@@ -132,76 +132,96 @@ button:disabled { opacity: .45; cursor: progress; }
 .fuda {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-x: auto;
-  overflow-y: hidden;
-  background: rgba(4, 5, 12, .6);
+  display: grid;
+  place-items: center;
+  padding: 30px 24px 92px;
+  box-sizing: border-box;
+  background: rgba(4, 5, 12, .62);
   opacity: 0;
   pointer-events: none;
   transition: opacity .3s;
 }
 .fuda.open { opacity: 1; pointer-events: auto; }
+
 .fuda-frame {
   position: relative;
-  flex: none;
-  margin: auto 56px;
-  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, .75));
-  transform: translateY(10px);
+  filter: drop-shadow(0 22px 34px rgba(0, 0, 0, .7));
+  transform: translateY(12px);
   transition: transform .35s cubic-bezier(.2, .9, .3, 1);
 }
 .fuda.open .fuda-frame { transform: translateY(0); }
 
-/* 小屋根。板より左右に張り出す */
+/* 小屋根。板より左右に張り出し、軒は台形に落とす */
 .fuda-roof {
-  height: 22px;
-  margin: 0 -22px;
-  background: linear-gradient(#2a2724, #191716);
-  border-bottom: 3px solid #100f0e;
-  border-radius: 3px 3px 0 0;
+  height: 15px;
+  margin: 0 -26px 0;
+  background: linear-gradient(#302c28, #17150f);
+  clip-path: polygon(0 100%, 14px 0, calc(100% - 14px) 0, 100% 100%);
 }
-.fuda-roof::before {
+.fuda-roof::after {
   content: "";
   display: block;
-  height: 7px;
-  margin: -7px -6px 0;
-  background: #0e0d0c;
-  border-radius: 3px;
+  position: relative;
+  top: 15px;
+  height: 5px;
+  margin: 0 4px;
+  background: #100e0b;
 }
 
-/* 白木の板。木目は縦に走る */
+/* 白木の板。木目は縦に走り、縁だけ濃い */
 .fuda-board {
+  position: relative;
   box-sizing: border-box;
-  height: 66vh;
-  max-height: 620px;
-  padding: 34px 40px 30px;
+  height: 62vh;
+  max-height: 580px;
+  padding: 26px;
+  background: linear-gradient(#7a6242, #5d4830);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+}
+.fuda-inner {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 24px 30px;
   background:
-    repeating-linear-gradient(90deg, rgba(120, 92, 56, .10) 0 2px, transparent 2px 9px),
-    repeating-linear-gradient(90deg, rgba(90, 66, 38, .16) 0 1px, transparent 1px 34px),
-    linear-gradient(90deg, #cdb992, #ded0ac 22%, #e2d5b4 60%, #cfbb94);
+    repeating-linear-gradient(90deg, rgba(112, 84, 48, .085) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(86, 62, 34, .13) 0 1px, transparent 1px 29px),
+    linear-gradient(90deg, #d3bf98, #e4d7b6 26%, #e7dbbc 62%, #d0bc95);
   color: #241c14;
   writing-mode: vertical-rl;
-  font-size: clamp(14px, 1.6vw, 17px);
+  font-size: clamp(14px, 1.55vw, 17px);
   line-height: 2.1;
   letter-spacing: .1em;
-  border: 1px solid #6d5636;
-  border-top: none;
-  box-shadow: inset 0 0 30px rgba(90, 62, 30, .2);
+  box-shadow:
+    inset 0 0 0 1px rgba(70, 48, 24, .35),
+    inset 0 0 26px rgba(92, 64, 30, .22);
+  overflow: hidden;
 }
 .fuda-title {
-  margin: 0 0 0 1.3em;
+  margin: 0 0 0 1.25em;
   font-weight: normal;
-  font-size: 1.55em;
+  font-size: 1.5em;
   letter-spacing: .3em;
   line-height: 1.4;
 }
 .fuda-body p { margin: 0 0 0 1em; }
 .fuda-body p:last-child { margin-left: 0; }
+
+/* 二本の脚。板の下から少しだけ覗く */
+.fuda-legs { position: absolute; left: 0; right: 0; top: 100%; height: 16px; }
+.fuda-legs span {
+  position: absolute;
+  top: 0;
+  width: 11px;
+  height: 100%;
+  background: linear-gradient(90deg, #2a2017, #4a3823 45%, #241b13);
+}
+.fuda-legs span:first-child { left: 22%; }
+.fuda-legs span:last-child { right: 22%; }
+
 .fuda .close {
   position: absolute;
   left: 50%;
-  bottom: -60px;
+  bottom: max(30px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
 }
 
@@ -348,8 +368,9 @@ button:disabled { opacity: .45; cursor: progress; }
 @media (max-width: 640px) {
   .scroll-frame { height: 66vh; margin: auto 40px; }
   .scroll-frame { --edge: 16px; --rollW: 64px; }
-  .fuda-frame { margin: auto 32px; }
-  .fuda-board { height: 62vh; padding: 24px 26px 22px; font-size: 14px; }
+  .fuda { padding: 20px 14px 84px; }
+  .fuda-board { height: 60vh; padding: 16px; }
+  .fuda-inner { padding: 18px 20px; font-size: 14px; }
   .paper { padding: 20px 26px; font-size: 14px; }
   .spot { font-size: 18px; }
   .prompt { flex-wrap: wrap; justify-content: center; width: 90vw; }

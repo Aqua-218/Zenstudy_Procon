@@ -5,6 +5,8 @@ export class Board {
     this.root = root;
     this.title = root.querySelector('.fuda-title');
     this.body = root.querySelector('.fuda-body');
+    this.board = root.querySelector('.fuda-board');
+    this.inner = root.querySelector('.fuda-inner');
     this.isOpen = false;
     this.onClose = null;
     root.querySelector('.close').addEventListener('click', () => this.close());
@@ -21,7 +23,19 @@ export class Board {
     this.onClose = onClose;
     this.isOpen = true;
     this.root.classList.add('open');
-    requestAnimationFrame(() => { this.root.scrollLeft = this.root.scrollWidth; });
+    this.fit();
+  }
+
+  // 縦書きは幅が自動で決まらないので、本文の実寸から板の幅を出す。
+  // これをしないと小屋根や脚の幅が本文と合わない
+  fit() {
+    this.board.style.width = '';
+    this.inner.style.width = '';
+    const bs = getComputedStyle(this.board), is = getComputedStyle(this.inner);
+    const pad = parseFloat(bs.paddingLeft) + parseFloat(bs.paddingRight)
+              + parseFloat(is.paddingLeft) + parseFloat(is.paddingRight);
+    const w = Math.ceil(this.inner.scrollWidth + pad);
+    this.board.style.width = `${Math.min(w, Math.floor(innerWidth * 0.92))}px`;
   }
 
   close() {
