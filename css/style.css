@@ -129,12 +129,16 @@ button:disabled { opacity: .45; cursor: progress; }
 }
 
 /* ---------- 立て札 ---------- */
+/* 屋根・板・脚・閉じるボタンを一本の縦の流れにして、まとめて中央に置く */
 .fuda {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 44px 24px 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 54px;
+  padding: 24px;
   box-sizing: border-box;
   background: rgba(4, 5, 12, .66);
   opacity: 0;
@@ -238,12 +242,7 @@ button:disabled { opacity: .45; cursor: progress; }
 .fuda-legs span:first-child { left: 24%; }
 .fuda-legs span:last-child { right: 24%; }
 
-.fuda .close {
-  position: absolute;
-  left: 50%;
-  bottom: max(30px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-}
+.fuda .close { flex: none; }
 
 /* ---------- 巻物 (本殿) ---------- */
 .scroll {
@@ -388,7 +387,7 @@ button:disabled { opacity: .45; cursor: progress; }
 @media (max-width: 640px) {
   .scroll-frame { height: 66vh; margin: auto 40px; }
   .scroll-frame { --edge: 16px; --rollW: 64px; }
-  .fuda { padding: 30px 14px 86px; }
+  .fuda { gap: 44px; padding: 16px 14px; }
   .fuda-roof { height: 20px; margin: 0 -20px; }
   .fuda-roof::before { inset: 7px 0 0; }
   .fuda-roof::after { left: 16px; right: 16px; height: 9px; }
