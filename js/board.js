@@ -8,6 +8,7 @@ export class Board {
     this.frame = root.querySelector('.fuda-frame');
     this.board = root.querySelector('.fuda-board');
     this.inner = root.querySelector('.fuda-inner');
+    this.text = root.querySelector('.fuda-text');
     this.isOpen = false;
     this.onClose = null;
     root.querySelector('.close').addEventListener('click', () => this.close());
@@ -36,7 +37,7 @@ export class Board {
     const bs = getComputedStyle(this.board), is = getComputedStyle(this.inner);
     const pad = parseFloat(bs.paddingLeft) + parseFloat(bs.paddingRight)
               + parseFloat(is.paddingLeft) + parseFloat(is.paddingRight);
-    const w = Math.ceil(this.inner.scrollWidth + pad);
+    const w = Math.ceil(this.text.scrollWidth + pad);
     // 画面に入りきらないときは目一杯まで広げる (足りない分は中身を横に送る)
     const room = Math.floor(innerWidth - (innerWidth < 700 ? 24 : 96));
     this.frame.style.width = `${Math.min(w, room)}px`;

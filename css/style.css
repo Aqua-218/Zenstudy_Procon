@@ -214,7 +214,6 @@ button:disabled { opacity: .45; cursor: progress; }
     radial-gradient(ellipse at 32% 14%, rgba(255, 250, 228, .45), transparent 62%),
     linear-gradient(92deg, #cbb791, #e2d5b3 24%, #e8dcbe 58%, #cfbc96);
   color: #241c14;
-  writing-mode: vertical-rl;
   font-size: clamp(14px, 1.55vw, 17px);
   line-height: 2.1;
   letter-spacing: .1em;
@@ -223,10 +222,14 @@ button:disabled { opacity: .45; cursor: progress; }
     inset 0 4px 9px rgba(44, 28, 10, .32),
     inset 0 -3px 7px rgba(44, 28, 10, .22),
     inset 0 0 44px rgba(122, 88, 40, .16);
-  /* 縦書きなので、画面が狭いと列が入りきらない。そのときは横に送れるようにする */
-  overflow: auto;
+  /* 外は横書きのまま容器にして、中身だけを縦書きにする */
+  overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior: contain;
 }
+.fuda-text { height: 100%; width: max-content; writing-mode: vertical-rl; }
+.fuda-inner::-webkit-scrollbar { height: 6px; }
+.fuda-inner::-webkit-scrollbar-thumb { background: rgba(90, 64, 30, .35); border-radius: 3px; }
 .fuda-title {
   margin: 0 0 0 1.25em;
   font-weight: normal;
@@ -253,17 +256,14 @@ button:disabled { opacity: .45; cursor: progress; }
 .fuda .close { flex: none; }
 
 /* ---------- 巻物 (本殿) ---------- */
-/* justify-content: center で中央寄せすると、はみ出したときに左へスクロールできなくなる。
-   margin: auto で寄せると、余白があるときは中央、無いときは先頭に付いて素直にスクロールできる */
+/* 枠は必ず画面に収める。入りきらない本文は、紙が軸の間を送られる (.paper 側でスクロール) */
 .scroll {
   position: fixed;
   inset: 0;
   display: flex;
-  padding: 0 clamp(40px, 6vw, 90px);
+  padding: 0 clamp(16px, 4vw, 70px);
   box-sizing: border-box;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior: contain;
+  overflow: hidden;
   background: rgba(4, 5, 12, .55);
   opacity: 0;
   pointer-events: none;
@@ -303,13 +303,18 @@ button:disabled { opacity: .45; cursor: progress; }
   box-shadow: inset 0 0 40px rgba(120, 90, 40, .12), inset 0 0 0 1.5px #d8b855;
   color: var(--paper-ink);
   position: relative;
-  writing-mode: vertical-rl;
   font-size: clamp(14px, 1.6vw, 17px);
   line-height: 2.15;
   letter-spacing: .1em;
-  overflow: hidden;
+  /* 縦書きの要素自身をスクロール容器にすると scrollLeft の向きが曖昧になるので、
+     外は横書きのまま容器にして、中身だけを縦書きにする */
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
 }
-.paper .inner { height: 100%; }
+.paper::-webkit-scrollbar { height: 6px; }
+.paper::-webkit-scrollbar-thumb { background: rgba(90, 64, 30, .4); border-radius: 3px; }
+.paper .inner { height: 100%; width: max-content; writing-mode: vertical-rl; }
 .mount::after {
   content: "";
   position: absolute;
@@ -397,7 +402,8 @@ button:disabled { opacity: .45; cursor: progress; }
 .fallback[hidden] { display: none; }
 
 @media (max-width: 640px) {
-  .scroll { padding: 0 26px; }
+  .scroll { padding: 0 10px; }
+  .tassel { display: none; }
   .scroll-frame { height: 70vh; max-height: none; --edge: 14px; --rollW: 52px; }
   .fuda { gap: 30px; padding: 12px 10px; }
   .fuda-roof { height: 20px; margin: 0 -20px; }
