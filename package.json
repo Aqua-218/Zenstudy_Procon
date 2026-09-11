@@ -1,0 +1,12 @@
+{
+  "name": "yomairi",
+  "version": "1.0.0",
+  "description": "夜の神社を歩いて巻物を読む。素の WebGL、ライブラリなし。",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8080"
+  },
+  "license": "MIT"
+}
