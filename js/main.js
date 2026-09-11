@@ -152,11 +152,14 @@ function openNearest() {
     scroll.show(s.name, s.body, () => { if (!revealed) reveal(); });
     return;
   }
+  const already = read.has(s.id);
   read.add(s.id);
   updateProgress();
   if (omens) omens.onRead(s.id, read.size);
   if (locked()) document.exitPointerLock();
-  scroll.show(s.name, s.body);
+  // 六つ読み終えたあとに読み直すと、末尾に一文だけ増える
+  const body = (already && read.size >= SPOTS.length && AFTER[s.id]) ? [...s.body, AFTER[s.id]] : s.body;
+  board.show(s.name, body);
 }
 
 function updateProgress() {
