@@ -329,4 +329,8 @@ updateProgress();
 
 // 動作確認用 (テストからカメラを動かす)
 window.__yomairi = { player, read, SPOTS, scroll, omens: () => omens, mirrorOn: () => renderer && renderer.mirrorOn, open: () => open,
+  ui: () => {
+    const f = document.querySelector('.fuda-frame').getBoundingClientRect();
+    return { 枠の中心: (f.left + f.right) / 2, 画面の中心: innerWidth / 2, ずれ: ((f.left + f.right) / 2 - innerWidth / 2).toFixed(1) };
+  },
   mirror: () => omens && { 閉じ具合: omens.mirror.toFixed(2), 直視: !!omens.lookingMirror, ずれ角: (omens.lookAngle * 180 / Math.PI).toFixed(1) + '°', 反射中: renderer.mirrorOn }, force: () => { for (const s of SPOTS) read.add(s.id); updateProgress(); }, reveal, jump: () => { open = openTarget = 1; revealed = true; } };

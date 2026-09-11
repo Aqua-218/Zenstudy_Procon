@@ -147,8 +147,12 @@ button:disabled { opacity: .45; cursor: progress; }
 }
 .fuda.open { opacity: 1; pointer-events: auto; }
 
+/* 幅は JS が本文の実寸から決める。内容任せにすると、屋根の負のマージンが
+   幅の計算に絡んで中央がずれる */
 .fuda-frame {
   position: relative;
+  flex: none;
+  max-width: 100%;
   filter: drop-shadow(0 20px 30px rgba(0, 0, 0, .72));
   transform: translateY(12px);
   transition: transform .35s cubic-bezier(.2, .9, .3, 1);
@@ -181,6 +185,7 @@ button:disabled { opacity: .45; cursor: progress; }
 /* 濃い木の枠。縦の木目と、上端が光り下端が落ちる面取り */
 .fuda-board {
   position: relative;
+  width: 100%;
   box-sizing: border-box;
   height: 60vh;
   max-height: 560px;
@@ -199,6 +204,7 @@ button:disabled { opacity: .45; cursor: progress; }
 /* 白木の面。枠に落ち込んで見えるよう、内側に影を付ける */
 .fuda-inner {
   height: 100%;
+  width: 100%;
   box-sizing: border-box;
   padding: 24px 30px;
   background:
