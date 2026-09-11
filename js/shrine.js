@@ -194,48 +194,34 @@ function chochinPost(b, x, z) {
   return { pos: [x, 2.2, z], col: [1.0, 0.42, 0.18], k: 2.0 };
 }
 
-// ---------- 立て札 ----------
-// 二本の柱に少し傾けた白木の板、上に小屋根。柱の脇に小さな提灯を下げて夜でも見つかるようにする
+// ---------- 駒札 ----------
+// 一本柱に小さな板。柱頭に小さな灯りを付けて、夜でも位置が分かるようにする
 function tatefuda(b, x, z, yaw, blockers) {
   const C = COLORS, m0 = chain(M.tr(x, 0, z), M.ry(yaw));
   const at = (...ms) => chain(m0, ...ms);
-  const W = 0.92, H = 0.66, PY = 1.34, TILT = -0.2;
-  for (const s of [-1, 1]) {
-    b.box(0, 0, 0, 0.09, PY, 0.09, C.darkwood, { mat: at(M.tr(s * (W / 2 - 0.04), PY / 2 - 0.12, 0)) });
-    b.box(0, 0, 0, 0.14, 0.1, 0.14, C.black, { mat: at(M.tr(s * (W / 2 - 0.04), -0.06, 0)) });
-  }
-  b.box(0, 0, 0, W + 0.1, 0.07, 0.12, C.darkwood, { mat: at(M.tr(0, PY - 0.06, 0)) });
-  // 板は上を奥へ傾ける
-  const bm = at(M.tr(0, PY - 0.38, 0.07), M.rx(TILT));
-  b.box(0, 0, 0, W, H, 0.05, C.darkwood, { mat: bm });
-  b.box(0, 0, 0, W - 0.09, H - 0.09, 0.02, [0.80, 0.74, 0.60], { mat: chain(bm, M.tr(0, 0, 0.03)) });
-  // 墨書き。縦に三行
-  for (let col = 0; col < 3; col++) {
-    const cx = 0.24 - col * 0.24, n = 4 - (col % 2);
+  const W = 0.62, H = 0.44, PY = 1.18;
+
+  b.box(0, 0, 0, 0.11, 0.1, 0.11, C.black, { mat: at(M.tr(0, -0.04, 0)) });
+  b.box(0, 0, 0, 0.075, PY, 0.075, C.darkwood, { mat: at(M.tr(0, PY / 2, 0)) });
+
+  const bm = at(M.tr(0, PY - 0.06, 0.05), M.rx(-0.16));
+  b.box(0, 0, 0, W, H, 0.035, C.darkwood, { mat: bm });
+  b.box(0, 0, 0, W - 0.07, H - 0.07, 0.015, [0.80, 0.74, 0.60], { mat: chain(bm, M.tr(0, 0, 0.022)) });
+  for (let col = 0; col < 2; col++) {
+    const cx = 0.12 - col * 0.24, n = 3 - col;
     for (let i = 0; i < n; i++) {
-      b.box(0, 0, 0, 0.035, 0.055, 0.004, [0.13, 0.11, 0.10],
-        { mat: chain(bm, M.tr(cx, H / 2 - 0.13 - i * 0.105, 0.045)) });
+      b.box(0, 0, 0, 0.03, 0.045, 0.003, [0.13, 0.11, 0.10],
+        { mat: chain(bm, M.tr(cx, H / 2 - 0.1 - i * 0.085, 0.032)) });
     }
   }
-  // 小屋根
-  { const a = 0.52, len = 0.34 / Math.cos(a), ry = PY + 0.1;
-    for (const s of [-1, 1]) {
-      const rm = at(M.tr(0, ry, 0.04), M.rx(s * a), M.tr(0, 0, s * len / 2));
-      b.box(0, 0, 0, W + 0.28, 0.05, len, C.roof, { mat: rm });
-      b.box(0, 0, 0, W + 0.2, 0.02, len - 0.04, C.darkwood, { mat: chain(rm, M.tr(0, -0.04, 0)) });
-    }
-    b.box(0, 0, 0, W + 0.34, 0.07, 0.1, C.black, { mat: at(M.tr(0, ry + 0.06, 0.04)) }); }
-  // 提灯
-  const lx = -(W / 2 + 0.24), ly = PY - 0.42;
-  b.box(0, 0, 0, 0.07, PY + 0.16, 0.07, C.darkwood, { mat: at(M.tr(lx, (PY + 0.16) / 2 - 0.1, 0)) });
-  b.box(0, 0, 0, 0.24, 0.05, 0.05, C.darkwood, { mat: at(M.tr(lx + 0.1, PY + 0.04, 0)) });
-  b.cylinder(0, 0, 0, 0.09, 0.11, 0.14, C.paper, { seg: 12, em: 0.85, mat: at(M.tr(lx + 0.2, ly, 0)) });
-  b.cylinder(0, 0, 0, 0.11, 0.09, 0.12, C.paper, { seg: 12, em: 0.85, mat: at(M.tr(lx + 0.2, ly + 0.14, 0)) });
-  b.cylinder(0, 0, 0, 0.07, 0.09, 0.03, C.black, { seg: 12, mat: at(M.tr(lx + 0.2, ly - 0.03, 0)) });
-  b.cylinder(0, 0, 0, 0.09, 0.07, 0.03, C.black, { seg: 12, mat: at(M.tr(lx + 0.2, ly + 0.26, 0)) });
-  blockers.push({ cx: x, cz: z, r: 0.45 });
-  const p = M.pt(m0, [lx + 0.2, ly + 0.07, 0]);
-  return { pos: p, col: [1.0, 0.62, 0.3], k: 1.0 };
+
+  const ly = PY + 0.16;
+  b.cylinder(0, 0, 0, 0.055, 0.06, 0.09, C.paper, { seg: 10, em: 0.8, mat: at(M.tr(0, ly, 0)) });
+  b.cylinder(0, 0, 0, 0.06, 0.05, 0.08, C.paper, { seg: 10, em: 0.8, mat: at(M.tr(0, ly + 0.09, 0)) });
+  b.cylinder(0, 0, 0, 0.045, 0.055, 0.02, C.black, { seg: 10, mat: at(M.tr(0, ly - 0.02, 0)) });
+
+  blockers.push({ cx: x, cz: z, r: 0.3 });
+  return { pos: M.pt(m0, [0, ly + 0.08, 0]), col: [1.0, 0.66, 0.34], k: 0.7 };
 }
 
 // ---------- 狛犬 ----------
