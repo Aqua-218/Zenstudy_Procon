@@ -1,0 +1,284 @@
+/* 画面はキャンバス一枚。UI は最小限、文字は縦書き。 */
+
+:root {
+  --ink: #efe6d6;
+  --night: #0a0c18;
+  --paper: #efe4c8;
+  --paper-ink: #2b2118;
+  --serif: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  overflow: hidden;
+  font-family: var(--serif);
+  color: var(--ink);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: rgba(10, 12, 24, .6);
+  border: 1px solid rgba(239, 230, 214, .45);
+  border-radius: 4px;
+  padding: .5em 1.2em;
+  cursor: pointer;
+}
+button:hover, button:focus-visible { border-color: var(--ink); background: rgba(20, 24, 40, .75); outline: none; }
+button:focus-visible { box-shadow: 0 0 0 2px rgba(239, 230, 214, .4); }
+button:disabled { opacity: .45; cursor: progress; }
+
+/* ---------- 開始画面 ---------- */
+.start {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(6, 7, 16, .72);
+  transition: opacity 1s ease;
+}
+.start.gone { opacity: 0; pointer-events: none; }
+.start-inner { max-width: 32em; }
+.start h1 {
+  margin: 0 0 .5em;
+  font-weight: normal;
+  font-size: 28px;
+  letter-spacing: .1em;
+}
+.lead { margin: 0 0 1.6em; font-size: 15px; line-height: 1.9; opacity: .85; }
+.controls {
+  margin: 0 0 2em;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.9;
+  opacity: .75;
+}
+.controls li { display: flex; gap: 1em; }
+.controls b { flex: none; width: 4em; font-weight: normal; opacity: .8; }
+#startBtn { font-size: 15px; padding: .7em 1.8em; }
+
+/* ---------- HUD ---------- */
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.progress {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 18px;
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: .12em;
+  opacity: .65;
+  text-shadow: 0 0 10px rgba(0, 0, 0, .9);
+  transition: opacity .6s, color .6s;
+}
+.progress.done { color: #ffd9a3; }
+
+.prompt {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px));
+  transform: translate(-50%, 8px);
+  display: flex;
+  align-items: center;
+  gap: .8em;
+  opacity: 0;
+  transition: opacity .35s, transform .35s;
+}
+.prompt.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.spot {
+  font-size: 18px;
+  letter-spacing: .12em;
+  text-shadow: 0 0 12px rgba(0, 0, 0, .95);
+  margin-right: .6em;
+}
+
+.stick {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  border-radius: 50%;
+  border: 1px solid rgba(239, 230, 214, .35);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.stick.on { opacity: 1; }
+.knob {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 44px; height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: rgba(239, 230, 214, .35);
+}
+
+/* ---------- 巻物 ---------- */
+.scroll {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: rgba(4, 5, 12, .55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll.open { opacity: 1; pointer-events: auto; }
+/* 参考: 横長の表装。緑地に金の唐草の縁、左に表紙 (題箋)、両端に木の軸、右に房 */
+.scroll-frame {
+  --edge: 22px;
+  --rollW: 92px;
+  --leaf: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2264%22%20height=%2264%22%20viewBox=%220%200%2064%2064%22%3E%3Crect%20width=%2264%22%20height=%2264%22%20fill=%22%232b6a5e%22/%3E%3Cg%20fill=%22none%22%20stroke=%22%23c9a94b%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M0%2032c12-14%2020%2014%2032%200s20-14%2032%200%22/%3E%3Cpath%20d=%22M32%200c-14%2012%2014%2020%200%2032s-14%2020%200%2032%22/%3E%3Cpath%20d=%22M8%2018c4-6%2010-6%2012%200M44%2046c4-6%2010-6%2012%200M46%2012c-2%206%202%2010%208%208M10%2044c6%202%2010-2%208-8%22/%3E%3C/g%3E%3Cg%20fill=%22%23cfae4e%22%3E%3Cpath%20d=%22M16%2016c0-8%208-12%2014-8-2%208-8%2012-14%208zM48%2048c0-8%208-12%2014-8-2%208-8%2012-14%208zM48%2016c-8%200-12%208-8%2014%208-2%2012-8%208-14zM16%2048c-8%200-12%208-8%2014%208-2%2012-8%208-14z%22/%3E%3Cpath%20d=%22M32%2026c-4%200-6%204-6%206s2%206%206%206%206-4%206-6-2-6-6-6z%22%20opacity=%22.9%22/%3E%3C/g%3E%3Cg%20fill=%22%23e3c76a%22%20opacity=%22.8%22%3E%3Ccircle%20cx=%224%22%20cy=%224%22%20r=%221.6%22/%3E%3Ccircle%20cx=%2260%22%20cy=%2260%22%20r=%221.6%22/%3E%3Ccircle%20cx=%2260%22%20cy=%224%22%20r=%221.6%22/%3E%3Ccircle%20cx=%224%22%20cy=%2260%22%20r=%221.6%22/%3E%3C/g%3E%3C/svg%3E");
+  position: relative;
+  flex: none;
+  margin: auto 80px;
+  height: 66vh;
+  max-height: 640px;
+  filter: drop-shadow(0 26px 40px rgba(0, 0, 0, .75));
+}
+.mount {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  padding: var(--edge) 14px var(--edge) 0;
+  box-sizing: border-box;
+  background: var(--leaf);
+  background-size: 48px 48px;
+  box-shadow: inset 0 0 0 2px #d8b855, inset 0 0 0 4px #2b6a5e, inset 0 0 0 5px #b8963f;
+}
+.paper {
+  flex: none;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 26px 40px 26px calc(var(--rollW) * 0.55 + 34px);
+  background: #eee5cc url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22300%22%20height=%22300%22%3E%3Cfilter%20id=%22n%22%3E%3CfeTurbulence%20type=%22fractalNoise%22%20baseFrequency=%22.9%22%20numOctaves=%223%22%20stitchTiles=%22stitch%22/%3E%3CfeColorMatrix%20values=%220%200%200%200%20.45%200%200%200%200%20.38%200%200%200%200%20.25%200%200%200%20.18%200%22/%3E%3C/filter%3E%3Crect%20width=%22300%22%20height=%22300%22%20filter=%22url%28%23n%29%22/%3E%3C/svg%3E");
+  box-shadow: inset 0 0 40px rgba(120, 90, 40, .12), inset 0 0 0 1.5px #d8b855;
+  color: var(--paper-ink);
+  position: relative;
+  writing-mode: vertical-rl;
+  font-size: clamp(14px, 1.6vw, 17px);
+  line-height: 2.15;
+  letter-spacing: .1em;
+  overflow: hidden;
+}
+.paper .inner { height: 100%; }
+.mount::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: calc(var(--rollW) * 0.55 + 46px);
+  background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.3) 55%, transparent);
+  pointer-events: none;
+}
+.paper h2 {
+  margin: 0 0 0 1.4em;
+  font-weight: normal;
+  font-size: 1.7em;
+  letter-spacing: .35em;
+  line-height: 1.4;
+}
+.paper .body p { margin: 0 0 0 1.1em; }
+.paper .body p:last-child { margin-left: 0; }
+
+/* 左の巻き: 紙が芯に何重にも巻かれた太い筒。柄は端へ行くほど詰めて円筒に見せ、上下は芯が覗く */
+.roll {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: var(--rollW);
+  margin-left: calc(var(--rollW) * -0.55);
+  z-index: 2;
+}
+.roll .skin {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50% / 9px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.75), rgba(0,0,0,.4) 14%, rgba(255,255,255,0) 32%, rgba(255,255,255,.18) 44%, rgba(255,255,255,0) 58%, rgba(0,0,0,.35) 80%, rgba(0,0,0,.75)),
+    linear-gradient(rgba(20,60,50,.35), rgba(20,60,50,.35)),
+    var(--leaf);
+  background-size: auto, auto, 32px 32px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .75), inset 0 3px 3px rgba(255,255,255,.12), inset 0 -3px 4px rgba(0,0,0,.35);
+}
+/* 芯の木の軸。筒の裏側に置き、上下にはみ出た分だけ見える */
+.roll::before, .roll::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 24px; height: 34px;
+  margin-left: -12px;
+  z-index: 0;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #4a2e14, #b4844a 40%, #8a5e2c 65%, #3c2410);
+  box-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+.roll::before { top: -20px; }
+.roll::after { bottom: -20px; }
+/* 右端の房: 縁から輪になった紐が下がって房に */
+.tassel {
+  position: absolute;
+  left: calc(100% - 6px); top: 36%;
+  width: 96px; height: 160px;
+  z-index: 3;
+  background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22200%22 viewBox=%220 0 120 200%22%3E%0A%3Cdefs%3E%3ClinearGradient id=%22c%22 x1=%220%22 x2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%238f2a24%22/%3E%3Cstop offset=%22.5%22 stop-color=%22%23d9583f%22/%3E%3Cstop offset=%221%22 stop-color=%22%238f2a24%22/%3E%3C/linearGradient%3E%3C/defs%3E%0A%3Cpath d=%22M0 20c30-14 58-10 62 10s-26 34-10 52c14 16 40 6 44-10%22 fill=%22none%22 stroke=%22%237a1f1a%22 stroke-width=%229%22 stroke-linecap=%22round%22/%3E%0A%3Cpath d=%22M0 20c30-14 58-10 62 10s-26 34-10 52c14 16 40 6 44-10%22 fill=%22none%22 stroke=%22url%28%23c%29%22 stroke-width=%226%22 stroke-linecap=%22round%22/%3E%0A%3Cpath d=%22M96 72c-2 18-6 30-10 42%22 stroke=%22%237a1f1a%22 stroke-width=%229%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%0A%3Cpath d=%22M96 72c-2 18-6 30-10 42%22 stroke=%22url%28%23c%29%22 stroke-width=%226%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%0A%3Crect x=%2276%22 y=%22110%22 width=%2220%22 height=%2214%22 rx=%224%22 fill=%22%23c9a94b%22 stroke=%22%237a5a1a%22 stroke-width=%221.5%22/%3E%0A%3Cpath d=%22M78 124l-8 60M82 124l-3 62M86 124l2 62M90 124l6 60M94 124l10 58%22 stroke=%22%23a83428%22 stroke-width=%223.2%22 stroke-linecap=%22round%22/%3E%0A%3Cpath d=%22M80 124l-6 58M84 124l-1 60M88 124l4 60M92 124l8 58%22 stroke=%22%23d9583f%22 stroke-width=%222%22 stroke-linecap=%22round%22/%3E%0A%3C/svg%3E") no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,.5));
+  pointer-events: none;
+}
+
+.scroll .close {
+  position: absolute;
+  left: 50%;
+  bottom: -64px;
+  transform: translateX(-50%);
+}
+
+/* ---------- WebGL 不可 ---------- */
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 2em;
+  text-align: center;
+  line-height: 2;
+}
+.fallback[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .scroll-frame { height: 66vh; margin: auto 40px; }
+  .scroll-frame { --edge: 16px; --rollW: 64px; }
+  .paper { padding: 20px 26px; font-size: 14px; }
+  .spot { font-size: 18px; }
+  .prompt { flex-wrap: wrap; justify-content: center; width: 90vw; }
+  .start h1 { font-size: 24px; }
+  .lead { font-size: 14px; }
+  .controls { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start, .prompt, .scroll, .stick { transition: none; }
+}
