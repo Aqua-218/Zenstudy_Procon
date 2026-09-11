@@ -19,7 +19,9 @@ export class Renderer {
     this.canvas = canvas;
     this.dpr = dpr;
     this.hinge = hinge;
-    const gl = this.gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance', desynchronized: true })   // desynchronized: 描画待ちで UI の反応を止めない;
+    // desynchronized (低遅延キャンバス) は通常の合成経路を迂回するため、
+    // 端末によっては書き込み途中のバッファがそのまま出て虹色のノイズが走る。使わない
+    const gl = this.gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
     if (!gl) throw new Error('WebGL unavailable');
 
     this.lights = scene.lights;

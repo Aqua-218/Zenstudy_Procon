@@ -223,7 +223,9 @@ button:disabled { opacity: .45; cursor: progress; }
     inset 0 4px 9px rgba(44, 28, 10, .32),
     inset 0 -3px 7px rgba(44, 28, 10, .22),
     inset 0 0 44px rgba(122, 88, 40, .16);
-  overflow: hidden;
+  /* 縦書きなので、画面が狭いと列が入りきらない。そのときは横に送れるようにする */
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 .fuda-title {
   margin: 0 0 0 1.25em;
@@ -393,13 +395,14 @@ button:disabled { opacity: .45; cursor: progress; }
 @media (max-width: 640px) {
   .scroll-frame { height: 66vh; margin: auto 40px; }
   .scroll-frame { --edge: 16px; --rollW: 64px; }
-  .fuda { gap: 44px; padding: 16px 14px; }
+  .fuda { gap: 30px; padding: 12px 10px; }
   .fuda-roof { height: 20px; margin: 0 -20px; }
   .fuda-roof::before { inset: 7px 0 0; }
   .fuda-roof::after { left: 16px; right: 16px; height: 9px; }
-  .fuda-board { height: 58vh; padding: 14px 15px 17px; }
-  .fuda-inner { padding: 18px 20px; font-size: 14px; }
-  .fuda-legs span { width: 12px; }
+  .fuda-board { height: 72vh; max-height: none; padding: 11px 12px 13px; }
+  .fuda-inner { padding: 14px 15px; font-size: 13px; line-height: 1.95; }
+  .fuda-legs { height: 20px; }
+  .fuda-legs span { width: 10px; }
   .paper { padding: 20px 26px; font-size: 14px; }
   .spot { font-size: 18px; }
   .prompt { flex-wrap: wrap; justify-content: center; width: 90vw; }

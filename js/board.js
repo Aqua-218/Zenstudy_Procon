@@ -25,6 +25,8 @@ export class Board {
     this.isOpen = true;
     this.root.classList.add('open');
     this.fit();
+    // 縦書きは右端が先頭。開いたら必ず先頭を見せる
+    requestAnimationFrame(() => { this.inner.scrollLeft = this.inner.scrollWidth; });
   }
 
   // 縦書きは幅が自動で決まらないので、本文の実寸から板の幅を出す。
@@ -35,7 +37,9 @@ export class Board {
     const pad = parseFloat(bs.paddingLeft) + parseFloat(bs.paddingRight)
               + parseFloat(is.paddingLeft) + parseFloat(is.paddingRight);
     const w = Math.ceil(this.inner.scrollWidth + pad);
-    this.frame.style.width = `${Math.min(w, Math.floor(innerWidth - 100))}px`;
+    // 画面に入りきらないときは目一杯まで広げる (足りない分は中身を横に送る)
+    const room = Math.floor(innerWidth - (innerWidth < 700 ? 24 : 96));
+    this.frame.style.width = `${Math.min(w, room)}px`;
   }
 
   close() {
