@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="夜桜の神社を歩いて、境内に置かれた巻物を読む。素の HTML / CSS / JavaScript だけで作った WebGL 作品。">
+<meta name="theme-color" content="#0a0c18">
+<title>夜参り</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/shrine.js">
+<link rel="modulepreload" href="js/renderer.js">
+<link rel="modulepreload" href="js/shaders.js">
+<link rel="modulepreload" href="js/geometry.js">
+<link rel="modulepreload" href="js/math.js">
+<link rel="modulepreload" href="js/content.js">
+<link rel="modulepreload" href="js/scroll.js">
+<link rel="modulepreload" href="js/audio.js">
+<link rel="modulepreload" href="js/build-worker.js">
+</head>
+<body>
+<canvas id="c" aria-label="夜桜の神社の境内。歩き回れる"></canvas>
+
+<!-- 開始画面。音を鳴らすためにユーザー操作が要る -->
+<div id="start" class="start">
+  <div class="start-inner">
+    <h1>夜参り</h1>
+    <p class="lead">夜の神社を歩いて、境内に置かれた巻物を読むページです。</p>
+    <ul class="controls">
+      <li><b>歩く</b>W A S D / 矢印キー（スマホは画面左側をドラッグ）</li>
+      <li><b>見回す</b>画面をクリックしてマウスを動かす（Esc で解除）</li>
+      <li><b>巻物</b>近づいて E、またはボタン</li>
+      <li><b>作法</b>手水で Q、拝殿で R（鈴）・F（拍手）</li>
+    </ul>
+    <button id="startBtn" type="button">はじめる</button>
+  </div>
+</div>
+
+<div class="hud">
+  <p id="progress" class="progress">巻物 0 / 6</p>
+  <div id="prompt" class="prompt">
+    <span id="spotName" class="spot"></span>
+    <button id="open" type="button">巻物を開く</button>
+    <button id="ring" type="button" hidden>鈴を鳴らす</button>
+    <button id="clapBtn" type="button" hidden>拍手を打つ</button>
+    <button id="purifyBtn" type="button" hidden>手水を使う</button>
+  </div>
+  <div id="stick" class="stick"><div id="knob" class="knob"></div></div>
+</div>
+
+<!-- 巻物 -->
+<div id="scroll" class="scroll" role="dialog" aria-modal="true">
+  <div class="scroll-frame">
+    <div class="mount">
+      <div class="paper"><div class="inner">
+        <h2></h2>
+        <div class="body"></div>
+      </div></div>
+    </div>
+    <div class="roll"><span class="skin"></span></div>
+    <span class="tassel"></span>
+    <button class="close" type="button" aria-label="閉じる">閉じる</button>
+  </div>
+</div>
+
+<p id="fallback" class="fallback" hidden>この端末では WebGL が使えないため、境内を描画できません。</p>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
