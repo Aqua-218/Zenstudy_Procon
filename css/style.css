@@ -253,14 +253,17 @@ button:disabled { opacity: .45; cursor: progress; }
 .fuda .close { flex: none; }
 
 /* ---------- 巻物 (本殿) ---------- */
+/* justify-content: center で中央寄せすると、はみ出したときに左へスクロールできなくなる。
+   margin: auto で寄せると、余白があるときは中央、無いときは先頭に付いて素直にスクロールできる */
 .scroll {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0 clamp(40px, 6vw, 90px);
+  box-sizing: border-box;
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior: contain;
   background: rgba(4, 5, 12, .55);
   opacity: 0;
   pointer-events: none;
@@ -270,12 +273,12 @@ button:disabled { opacity: .45; cursor: progress; }
 .scroll.open { opacity: 1; pointer-events: auto; }
 /* 参考: 横長の表装。緑地に金の唐草の縁、左に表紙 (題箋)、両端に木の軸、右に房 */
 .scroll-frame {
+  margin: auto;
   --edge: 22px;
   --rollW: 92px;
   --leaf: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2264%22%20height=%2264%22%20viewBox=%220%200%2064%2064%22%3E%3Crect%20width=%2264%22%20height=%2264%22%20fill=%22%232b6a5e%22/%3E%3Cg%20fill=%22none%22%20stroke=%22%23c9a94b%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22M0%2032c12-14%2020%2014%2032%200s20-14%2032%200%22/%3E%3Cpath%20d=%22M32%200c-14%2012%2014%2020%200%2032s-14%2020%200%2032%22/%3E%3Cpath%20d=%22M8%2018c4-6%2010-6%2012%200M44%2046c4-6%2010-6%2012%200M46%2012c-2%206%202%2010%208%208M10%2044c6%202%2010-2%208-8%22/%3E%3C/g%3E%3Cg%20fill=%22%23cfae4e%22%3E%3Cpath%20d=%22M16%2016c0-8%208-12%2014-8-2%208-8%2012-14%208zM48%2048c0-8%208-12%2014-8-2%208-8%2012-14%208zM48%2016c-8%200-12%208-8%2014%208-2%2012-8%208-14zM16%2048c-8%200-12%208-8%2014%208-2%2012-8%208-14z%22/%3E%3Cpath%20d=%22M32%2026c-4%200-6%204-6%206s2%206%206%206%206-4%206-6-2-6-6-6z%22%20opacity=%22.9%22/%3E%3C/g%3E%3Cg%20fill=%22%23e3c76a%22%20opacity=%22.8%22%3E%3Ccircle%20cx=%224%22%20cy=%224%22%20r=%221.6%22/%3E%3Ccircle%20cx=%2260%22%20cy=%2260%22%20r=%221.6%22/%3E%3Ccircle%20cx=%2260%22%20cy=%224%22%20r=%221.6%22/%3E%3Ccircle%20cx=%224%22%20cy=%2260%22%20r=%221.6%22/%3E%3C/g%3E%3C/svg%3E");
   position: relative;
   flex: none;
-  margin: auto 80px;
   height: 66vh;
   max-height: 640px;
   filter: drop-shadow(0 26px 40px rgba(0, 0, 0, .75));
@@ -372,10 +375,11 @@ button:disabled { opacity: .45; cursor: progress; }
   pointer-events: none;
 }
 
+/* 枠の中に置くと横スクロールで一緒に流れるので、画面に対して固定する */
 .scroll .close {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  bottom: -64px;
+  bottom: max(26px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
 }
 
@@ -393,8 +397,8 @@ button:disabled { opacity: .45; cursor: progress; }
 .fallback[hidden] { display: none; }
 
 @media (max-width: 640px) {
-  .scroll-frame { height: 66vh; margin: auto 40px; }
-  .scroll-frame { --edge: 16px; --rollW: 64px; }
+  .scroll { padding: 0 26px; }
+  .scroll-frame { height: 70vh; max-height: none; --edge: 14px; --rollW: 52px; }
   .fuda { gap: 30px; padding: 12px 10px; }
   .fuda-roof { height: 20px; margin: 0 -20px; }
   .fuda-roof::before { inset: 7px 0 0; }
@@ -403,7 +407,7 @@ button:disabled { opacity: .45; cursor: progress; }
   .fuda-inner { padding: 14px 15px; font-size: 13px; line-height: 1.95; }
   .fuda-legs { height: 20px; }
   .fuda-legs span { width: 10px; }
-  .paper { padding: 20px 26px; font-size: 14px; }
+  .paper { padding: 16px 20px; font-size: 13px; line-height: 1.95; }
   .spot { font-size: 18px; }
   .prompt { flex-wrap: wrap; justify-content: center; width: 90vw; }
   .start h1 { font-size: 24px; }
