@@ -40,6 +40,15 @@ export const LAYOUT = {
   honden: { z: -27, doorZ: -21.55, hingeX: 1.3, floor: 2.0, halfX: 5.2, halfZ: 5.5 },
   // 御鏡の面。法線は +Z。Worker でシーンを組むので、位置は定数として持たせる
   mirror: { x: 0, y: 3.5, z: -29.42 },
+  // 立て札の位置と向き [x, z, yaw]。巻物 (content.js) の判定位置もここを参照する
+  fuda: {
+    torii:   [3.4, 37.2, -0.12],
+    chochin: [4.2, 26.5, -0.38],
+    chozuya: [-5.3, 22.6, 0.95],
+    seichu:  [3.4, 17.4, -0.42],
+    ema:     [4.6, 16.2, -0.55],
+    haiden:  [3.6, 11.4, -0.5],
+  },
   bell: [0, 5.6, 9.2],
   bounds: { x: 10.5, zMin: -31.5, zMax: 50 },
 };
@@ -58,6 +67,7 @@ export function buildScene(seed = 7) {
   torii(b, LAYOUT.torii);
   for (const s of [-1, 1]) { lights.push(toro(b, s * 3.6, 10.5)); lights.push(toro(b, s * 3.6, 39.5)); lights.push(toro(b, s * 5.6, -10.5)); }
   for (let z = 13; z <= 33; z += 4) for (const s of [-1, 1]) lights.push(chochinPost(b, s * 3.1, z));
+  for (const [x, z, a] of Object.values(LAYOUT.fuda)) lights.push(tatefuda(b, x, z, a, blockers));
   for (const s of [-1, 1]) komainu(b, s * 4.6, 12.0, s, blockers);
   chozuya(b, LAYOUT.chozuya.x, LAYOUT.chozuya.z, blockers);
   emakake(b, LAYOUT.ema.x, LAYOUT.ema.z, blockers);
@@ -182,6 +192,50 @@ function chochinPost(b, x, z) {
   b.cylinder(x, 1.78, z, 0.2, 0.24, 0.07, C.black, { seg: 10 });
   b.cylinder(x, 2.53, z, 0.24, 0.2, 0.07, C.black, { seg: 10 });
   return { pos: [x, 2.2, z], col: [1.0, 0.42, 0.18], k: 2.0 };
+}
+
+// ---------- 立て札 ----------
+// 二本の柱に少し傾けた白木の板、上に小屋根。柱の脇に小さな提灯を下げて夜でも見つかるようにする
+function tatefuda(b, x, z, yaw, blockers) {
+  const C = COLORS, m0 = chain(M.tr(x, 0, z), M.ry(yaw));
+  const at = (...ms) => chain(m0, ...ms);
+  const W = 0.92, H = 0.66, PY = 1.34, TILT = -0.2;
+  for (const s of [-1, 1]) {
+    b.box(0, 0, 0, 0.09, PY, 0.09, C.darkwood, { mat: at(M.tr(s * (W / 2 - 0.04), PY / 2 - 0.12, 0)) });
+    b.box(0, 0, 0, 0.14, 0.1, 0.14, C.black, { mat: at(M.tr(s * (W / 2 - 0.04), -0.06, 0)) });
+  }
+  b.box(0, 0, 0, W + 0.1, 0.07, 0.12, C.darkwood, { mat: at(M.tr(0, PY - 0.06, 0)) });
+  // 板は上を奥へ傾ける
+  const bm = at(M.tr(0, PY - 0.38, 0.07), M.rx(TILT));
+  b.box(0, 0, 0, W, H, 0.05, C.darkwood, { mat: bm });
+  b.box(0, 0, 0, W - 0.09, H - 0.09, 0.02, [0.80, 0.74, 0.60], { mat: chain(bm, M.tr(0, 0, 0.03)) });
+  // 墨書き。縦に三行
+  for (let col = 0; col < 3; col++) {
+    const cx = 0.24 - col * 0.24, n = 4 - (col % 2);
+    for (let i = 0; i < n; i++) {
+      b.box(0, 0, 0, 0.035, 0.055, 0.004, [0.13, 0.11, 0.10],
+        { mat: chain(bm, M.tr(cx, H / 2 - 0.13 - i * 0.105, 0.045)) });
+    }
+  }
+  // 小屋根
+  { const a = 0.52, len = 0.34 / Math.cos(a), ry = PY + 0.1;
+    for (const s of [-1, 1]) {
+      const rm = at(M.tr(0, ry, 0.04), M.rx(s * a), M.tr(0, 0, s * len / 2));
+      b.box(0, 0, 0, W + 0.28, 0.05, len, C.roof, { mat: rm });
+      b.box(0, 0, 0, W + 0.2, 0.02, len - 0.04, C.darkwood, { mat: chain(rm, M.tr(0, -0.04, 0)) });
+    }
+    b.box(0, 0, 0, W + 0.34, 0.07, 0.1, C.black, { mat: at(M.tr(0, ry + 0.06, 0.04)) }); }
+  // 提灯
+  const lx = -(W / 2 + 0.24), ly = PY - 0.42;
+  b.box(0, 0, 0, 0.07, PY + 0.16, 0.07, C.darkwood, { mat: at(M.tr(lx, (PY + 0.16) / 2 - 0.1, 0)) });
+  b.box(0, 0, 0, 0.24, 0.05, 0.05, C.darkwood, { mat: at(M.tr(lx + 0.1, PY + 0.04, 0)) });
+  b.cylinder(0, 0, 0, 0.09, 0.11, 0.14, C.paper, { seg: 12, em: 0.85, mat: at(M.tr(lx + 0.2, ly, 0)) });
+  b.cylinder(0, 0, 0, 0.11, 0.09, 0.12, C.paper, { seg: 12, em: 0.85, mat: at(M.tr(lx + 0.2, ly + 0.14, 0)) });
+  b.cylinder(0, 0, 0, 0.07, 0.09, 0.03, C.black, { seg: 12, mat: at(M.tr(lx + 0.2, ly - 0.03, 0)) });
+  b.cylinder(0, 0, 0, 0.09, 0.07, 0.03, C.black, { seg: 12, mat: at(M.tr(lx + 0.2, ly + 0.26, 0)) });
+  blockers.push({ cx: x, cz: z, r: 0.45 });
+  const p = M.pt(m0, [lx + 0.2, ly + 0.07, 0]);
+  return { pos: p, col: [1.0, 0.62, 0.3], k: 1.0 };
 }
 
 // ---------- 狛犬 ----------

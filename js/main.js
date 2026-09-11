@@ -6,6 +6,7 @@ import { clamp01 } from './math.js';
 import { ringBell, drum, startAmbient, hushAmbient, footstep, clap, ladle } from './audio.js';
 import { SPOTS, HONDEN, REVEAL, AFTER } from './content.js';
 import { Scroll } from './scroll.js';
+import { Board } from './board.js';
 import { Omens } from './omen.js';
 
 const $ = id => document.getElementById(id);
@@ -60,12 +61,14 @@ const keys = new Set();
 let started = false, swing = 0, open = 0, openTarget = 0, revealed = false, hush = 0;
 const read = new Set();
 const scroll = new Scroll($('scroll'));
+const board = new Board($('fuda'));          // 境内の立て札。本殿だけ巻物を使う
+const reading = () => scroll.isOpen || board.isOpen;
 
 // ---------- 入力 ----------
 addEventListener('keydown', e => {
   if (!started) return;
   keys.add(e.code);
-  if (scroll.isOpen) { if (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Enter') scroll.close(); return; }
+  if (reading()) { if (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Enter') { scroll.close(); board.close(); } return; }
   if (e.code === 'KeyE' || e.code === 'Enter') openNearest();
   if (e.code === 'KeyR') ring();
   if (e.code === 'KeyF') doClap();
@@ -81,13 +84,13 @@ const stick = { id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
 // PC: クリックでマウスを取り込み (Pointer Lock)、以降はマウスを動かすだけで視線が変わる。Esc で解除
 const locked = () => document.pointerLockElement === canvas;
 document.addEventListener('mousemove', e => {
-  if (!locked() || scroll.isOpen) return;
+  if (!locked() || reading()) return;
   const k = 0.0022;
   player.yaw += e.movementX * k;
   player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch - e.movementY * k));
 });
 canvas.addEventListener('pointerdown', e => {
-  if (!started || scroll.isOpen) return;
+  if (!started || reading()) return;
   if (!touch && !locked() && canvas.requestPointerLock) { canvas.requestPointerLock(); return; }
   if (locked()) return;
   canvas.setPointerCapture(e.pointerId);
@@ -140,7 +143,7 @@ function nearestSpot() {
 }
 
 function openNearest() {
-  if (!started || scroll.isOpen) return;
+  if (!started || reading()) return;
   const s = nearestSpot();
   if (!s) return;
   if (s.id === 'honden') {
@@ -157,7 +160,7 @@ function openNearest() {
 }
 
 function updateProgress() {
-  ui.progress.textContent = `巻物 ${read.size} / ${SPOTS.length}`;
+  ui.progress.textContent = `立て札 ${read.size} / ${SPOTS.length}`;
   ui.progress.classList.toggle('done', read.size >= SPOTS.length);
 }
 
@@ -175,7 +178,7 @@ function reveal() {
 
 // 手水
 function purify() {
-  if (!started || scroll.isOpen) return;
+  if (!started || reading()) return;
   const s = nearestSpot();
   if (!s || s.id !== 'chozuya' || (omens && omens.purified)) return;
   ladle();
@@ -185,7 +188,7 @@ function purify() {
 
 // 拍手
 function doClap() {
-  if (!started || scroll.isOpen) return;
+  if (!started || reading()) return;
   const s = nearestSpot();
   if (!s || s.id !== 'haiden') return;
   clap(1);
@@ -200,7 +203,7 @@ function doClap() {
 let claps = 0, clapReset = null;
 
 function ring() {
-  if (!started || scroll.isOpen) return;
+  if (!started || reading()) return;
   const s = nearestSpot();
   if (!s || s.id !== 'haiden') return;
   ringBell();
@@ -282,15 +285,15 @@ function frame(now) {
   const t = now / 1000;
 
   hush *= Math.exp(-dtReal * 0.35);
-  const moving = (started && !scroll.isOpen) ? move(dt) : 0;
+  const moving = (started && !reading()) ? move(dt) : 0;
   walk += moving * dt * 7;
   // 足音は頭の上下 (bob) と合わせる。半周期ごとに片足が着く
   const ph = Math.floor(walk / Math.PI);
   const surface = surfaceAt(player.x, player.z);
-  const stepped = started && !scroll.isOpen && moving > 0.05 && ph !== stepPhase;
+  const stepped = started && !reading() && moving > 0.05 && ph !== stepPhase;
   if (stepped) footstep(surface, 0.85 + moving * 0.3);
   stepPhase = ph;
-  if (started && omens) { omens.eyeY = eyeY; omens.update(dt, scroll.isOpen ? 0 : moving, surface); }
+  if (started && omens) { omens.eyeY = eyeY; omens.update(dt, reading() ? 0 : moving, surface); }
   swing *= Math.exp(-dtReal * 1.1);
   if (omens && omens.ropeSwing > swing) swing = omens.ropeSwing;   // 帰り道、鈴緒がまだ揺れている
   open += (openTarget - open) * (1 - Math.exp(-dtReal * 0.9));
@@ -299,10 +302,10 @@ function frame(now) {
   eyeY += (floorY(player.x, player.z) + 1.62 - eyeY) * (1 - Math.exp(-dtReal * 12));
   const eye = [player.x, eyeY + bob, player.z];
   // 巻物を読んでいる間は背景なので 30fps に落とす
-  if (!scroll.isOpen || (frameNo++ & 1) === 0) renderer.render({ eye, yaw: player.yaw, pitch: player.pitch, t, swing, open, hush, omen: omens && omens.uniforms(), petals: !reduce });
+  if (!reading() || (frameNo++ & 1) === 0) renderer.render({ eye, yaw: player.yaw, pitch: player.pitch, t, swing, open, hush, omen: omens && omens.uniforms(), petals: !reduce });
   renderer.adapt(dtReal * 1000);   // GPU 待ちも含めた実フレーム間隔で判断する
 
-  if (started && !scroll.isOpen) {
+  if (started && !reading()) {
     const s = nearestSpot();
     ui.prompt.classList.toggle('show', !!s);
     if (s) {
@@ -310,7 +313,9 @@ function frame(now) {
       ui.ring.hidden = s.id !== 'haiden';
       ui.clap.hidden = s.id !== 'haiden';
       ui.purify.hidden = s.id !== 'chozuya' || (omens && omens.purified);
-      ui.open.textContent = s.id === 'honden' && read.size < SPOTS.length && !debug ? '扉に触れる' : (read.has(s.id) ? 'もう一度読む' : '巻物を開く');
+      ui.open.textContent = s.id === 'honden'
+        ? (read.size < SPOTS.length && !debug ? '扉に触れる' : '巻物を開く')
+        : (read.has(s.id) ? 'もう一度読む' : '立て札を読む');
     }
   } else {
     ui.prompt.classList.remove('show');
