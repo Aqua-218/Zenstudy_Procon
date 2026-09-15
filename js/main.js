@@ -22,8 +22,8 @@ const touch = matchMedia('(pointer: coarse)').matches;
 // 発熱はフレームを抑えるのが一番効く
 const mobile = touch || Math.min(innerWidth, innerHeight) < 760;
 const QUALITY = mobile
-  ? { density: 0.45, ssao: false, wideBloom: false, shadow: 1024, refl: 384, fps: 40, idleFps: 24, dpr: 1.1 }
-  : { density: 1, ssao: true, wideBloom: true, shadow: 4096, refl: 768, fps: 0, idleFps: 30, dpr: 1.5 };
+  ? { density: 0.45, ssao: false, wideBloom: false, shadow: 1024, refl: 384, lod: 16, fps: 40, idleFps: 24, dpr: 1.1 }
+  : { density: 1, ssao: true, wideBloom: true, shadow: 4096, refl: 768, lod: 22, fps: 0, idleFps: 30, dpr: 1.5 };
 // ?debug で巻物を読まなくても本殿が開く (動作確認用)
 const debug = new URLSearchParams(location.search).has('debug');
 

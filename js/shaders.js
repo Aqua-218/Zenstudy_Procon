@@ -398,11 +398,12 @@ export const BLOSSOM_VS = /* glsl */`
     col += base * pointLights(c, sn) * 1.2;
     vec3 hv = normalize(uMoon + toEye);
     col += vec3(0.6, 0.68, 0.9) * pow(max(dot(sn, hv), 0.0), 28.0) * 0.16 * shd;   // 花弁の艶
-    float d = length(p - uEye);
-    vFog = 1.0 - exp(-d * 0.011);
+    vFog = 1.0 - exp(-length(p - uEye) * 0.011);
     vC = col;
-    // 遠くの 1 輪ずつの花は房に隠れるので畳んで消す
-    gl_Position = (aSz < 0.3 && d > uLod) ? vec4(2.0, 2.0, 2.0, 1.0) : uVP * vec4(p, 1.0);
+    // 遠くの 1 輪ずつの花は房に隠れるので畳んで消す。
+    // 判定は板の中心で行う。頂点ごとの位置で判断すると、境界で 1 枚の板の一部の頂点だけが
+    // 飛んで三角形が引き伸ばされる
+    gl_Position = (aSz < 0.3 && length(c - uEye) > uLod) ? vec4(2.0, 2.0, 2.0, 1.0) : uVP * vec4(p, 1.0);
   }`;
 
 export const BLOSSOM_FS = /* glsl */`

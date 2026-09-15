@@ -16,7 +16,7 @@ const BLOSSOM_ATTRIBS = [['aP', 3, 0], ['aN', 3, 12], ['aUv', 2, 24], ['aSz', 1,
 export class Renderer {
   constructor(canvas, scene, { dpr = 1, hinge = [0, 0], drip = [0, 0, 0], quality = {} } = {}) {
     this.drip = drip;
-    this.q = Object.assign({ ssao: true, wideBloom: true, shadow: 4096, refl: 768 }, quality);
+    this.q = Object.assign({ ssao: true, wideBloom: true, shadow: 4096, refl: 768, lod: 22 }, quality);
     this.canvas = canvas;
     this.dpr = dpr;
     this.hinge = hinge;
@@ -132,14 +132,25 @@ export class Renderer {
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    let rb = null;
     if (withDepth) {
-      const rb = gl.createRenderbuffer();
+      rb = gl.createRenderbuffer();
       gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
       gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
       gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return { fb, tex, w, h };
+    return { fb, tex, rb, w, h };
+  }
+
+  // 作り直す前に古いものを捨てる。捨てずに作り直すと解像度を変えるたびに漏れて、
+  // やがて GPU のメモリが足りなくなり画面がちらつく
+  dispose(f) {
+    if (!f) return;
+    const gl = this.gl;
+    gl.deleteFramebuffer(f.fb);
+    gl.deleteTexture(f.tex);
+    if (f.rb) gl.deleteRenderbuffer(f.rb);
   }
 
   // 重いときは内部解像度を下げ、余裕が戻れば上げる
@@ -150,9 +161,16 @@ export class Renderer {
     const frameMs = this.lastAdaptAt ? Math.min(t - this.lastAdaptAt, 200) : targetMs;
     this.lastAdaptAt = t;
     this.avgMs = this.avgMs === undefined ? frameMs : this.avgMs * 0.9 + frameMs * 0.1;
-    if (t - (this.lastAdapt || 0) < 1500) return;
-    if (this.avgMs > targetMs + 6 && this.scale > 0.5) { this.scale = Math.max(0.5, this.scale - 0.15); this.lastAdapt = t; this.resize(); }
-    else if (this.avgMs < targetMs + 1.5 && this.scale < 1) { this.scale = Math.min(1, this.scale + 0.1); this.lastAdapt = t; this.resize(); }
+    // 下げる条件と戻す条件を離し、変えたあとは測り直す。近い閾値で行き来すると
+    // そのたびに作り直しが起きて画面がちらつく
+    if (t - (this.lastAdapt || 0) < 3000) return;
+    const change = this.avgMs > targetMs + 9 && this.scale > 0.55 ? -0.15
+      : this.avgMs < targetMs - 1.5 && this.scale < 1 ? 0.15 : 0;
+    if (!change) return;
+    this.scale = Math.max(0.55, Math.min(1, this.scale + change));
+    this.lastAdapt = t;
+    this.avgMs = undefined;
+    this.resize();
     this.ssao = this.q.ssao && this.scale >= 0.7;   // 解像度を落とすほど重いときは SSAO も止める
   }
 
@@ -161,6 +179,7 @@ export class Renderer {
     if (this.scale === undefined) this.scale = 1;
     c.width = Math.max(1, Math.floor(innerWidth * this.dpr * this.scale));
     c.height = Math.max(1, Math.floor(innerHeight * this.dpr * this.scale));
+    for (const f of [this.sceneFbo, this.bloomA, this.bloomB, this.bloomC, this.ndFbo, this.aoA, this.aoB]) this.dispose(f);
     this.sceneFbo = this.fbo(c.width, c.height, true);
     const bw = Math.max(1, c.width >> 2), bh = Math.max(1, c.height >> 2);
     this.bloomA = this.fbo(bw, bh, false);
@@ -346,7 +365,7 @@ export class Renderer {
     gl.uniformMatrix4fv(p.u.uLightVP, false, this.lightVP);
     this.bindTex(0, this.shadowFbo.tex, p.u.uShadow);
     gl.uniform3fv(p.u.uFog, FOG);
-    gl.uniform1f(p.u.uLod, this.scale < 0.85 ? 14 : 22);   // 1 輪ずつの花を描く距離。重いときは短く
+    gl.uniform1f(p.u.uLod, this.q.lod);   // 1 輪ずつの花を描く距離
     gl.uniform1f(p.u.uFall, 0);
     this.bindAttribs(p, this.blossomBuf, BLOSSOM_ATTRIBS, BLOSSOM_STRIDE * 4);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.blossomIdx);
